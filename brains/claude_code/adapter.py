@@ -1,12 +1,23 @@
 """Spawn the `claude` CLI as a subprocess and stream its output.
 
-Phase 1 target: a minimal, working adapter that either
+The ``claude`` CLI (2.x) in ``--output-format stream-json`` mode emits
+several event types. This adapter parses them and yields only the
+textual assistant output so the caller can forward it to a channel.
 
-1. Spawns `claude -p <prompt> --session <path> --output-format stream-json
-   --permission-mode <mode> --allowed-tools <csv>` and parses its stream,
-   yielding text deltas to the caller, OR
-2. Returns a canned stub response when `COACH_BRAIN_STUB=1` is set, so
-   tests and smoke checks can run without the `claude` CLI installed.
+Event types handled:
+    system        - init/hook lifecycle; ignored.
+    assistant     - full assistant message; yield all text blocks.
+    stream_event  - partial streaming; yield text_delta tokens.
+    user          - echoed tool results; ignored.
+    result        - terminal event with final ``result`` string; used as
+                    a fallback when nothing was streamed.
+    error         - fatal; raises :class:`ClaudeCodeError`.
+
+Older event types (``text`` / ``content_block_delta`` at the top level)
+are still supported for backward compatibility.
+
+If ``COACH_BRAIN_STUB=1`` is set the brain returns a canned stub so
+tests and smoke checks can run without the ``claude`` CLI installed.
 """
 
 from __future__ import annotations
@@ -14,7 +25,9 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
+
+from loguru import logger
 
 from brains._base import BrainInvocation
 from brains.claude_code.session import session_path
@@ -54,6 +67,7 @@ class ClaudeCodeBrain:
             "stream-json",
             "--permission-mode",
             inv.permission_mode,
+            "--verbose",
         ]
         if inv.allowed_tools:
             args += ["--allowed-tools", ",".join(inv.allowed_tools)]
@@ -69,17 +83,8 @@ class ClaudeCodeBrain:
 
         assert proc.stdout is not None
         try:
-            async for line in _read_lines(proc.stdout, timeout_s=inv.timeout_s):
-                event = _parse_event(line)
-                if event is None:
-                    continue
-                etype = event.get("type")
-                if etype in {"text", "content_block_delta"}:
-                    delta = event.get("delta") or event.get("text") or ""
-                    if delta:
-                        yield delta
-                elif etype == "error":
-                    raise ClaudeCodeError(event.get("message", "unknown error"))
+            async for chunk in _parse_stream(proc.stdout, timeout_s=inv.timeout_s):
+                yield chunk
         finally:
             if proc.returncode is None:
                 proc.terminate()
@@ -87,6 +92,82 @@ class ClaudeCodeBrain:
                     await asyncio.wait_for(proc.wait(), timeout=5)
                 except asyncio.TimeoutError:
                     proc.kill()
+
+
+async def _parse_stream(
+    stream: asyncio.StreamReader, *, timeout_s: int
+) -> AsyncIterator[str]:
+    """Parse stream-json events and yield user-visible text."""
+
+    yielded_anything = False
+    assistant_text_seen = False
+
+    async for line in _read_lines(stream, timeout_s=timeout_s):
+        event = _parse_event(line)
+        if event is None:
+            continue
+        etype = event.get("type")
+
+        if etype == "assistant":
+            message = event.get("message") or {}
+            for block in message.get("content") or []:
+                if block.get("type") == "text":
+                    text = block.get("text") or ""
+                    if text:
+                        assistant_text_seen = True
+                        yielded_anything = True
+                        yield text
+
+        elif etype == "stream_event":
+            inner = event.get("event") or {}
+            if inner.get("type") == "content_block_delta":
+                delta = inner.get("delta") or {}
+                if delta.get("type") == "text_delta":
+                    text = delta.get("text") or ""
+                    if text:
+                        assistant_text_seen = True
+                        yielded_anything = True
+                        yield text
+
+        elif etype == "result":
+            subtype = event.get("subtype")
+            if subtype == "success":
+                # Only use as fallback when nothing was streamed/assistant-ed
+                if not assistant_text_seen:
+                    text = event.get("result") or ""
+                    if text:
+                        yielded_anything = True
+                        yield text
+            elif subtype == "error" or subtype == "error_max_turns":
+                raise ClaudeCodeError(
+                    event.get("error") or event.get("result") or "claude CLI error"
+                )
+
+        elif etype == "error":
+            raise ClaudeCodeError(
+                event.get("message") or event.get("error") or "claude CLI error"
+            )
+
+        elif etype in {"text", "content_block_delta"}:
+            # Backward-compatible legacy event shapes.
+            delta = event.get("delta") or event.get("text") or ""
+            if delta:
+                yielded_anything = True
+                yield delta
+
+        elif etype in {"system", "user", "rate_limit_event"}:
+            # Lifecycle / tool-echo / metadata; not user-facing.
+            continue
+
+        else:
+            logger.debug(
+                "claude_code adapter: unknown event type={} raw={}",
+                etype,
+                line[:200],
+            )
+
+    if not yielded_anything:
+        logger.debug("claude_code adapter: stream ended with no text yielded")
 
 
 async def _read_lines(
@@ -107,8 +188,11 @@ async def _read_lines(
         yield line
 
 
-def _parse_event(raw: bytes) -> dict | None:
+def _parse_event(raw: bytes) -> dict[str, Any] | None:
     try:
-        return json.loads(raw.decode("utf-8"))
+        parsed = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
         return None
+    if isinstance(parsed, dict):
+        return parsed
+    return None
