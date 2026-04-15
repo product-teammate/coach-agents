@@ -134,6 +134,44 @@ def _run_one_case(
     if min_chars is not None and len(text) < min_chars:
         failures.append(f"assistant chars {len(text)} < min {min_chars}")
 
+    # Extract tool usage from raw trace events
+    tool_calls = _extract_tool_calls(emitter, request_id)
+    tool_names = [t["name"] for t in tool_calls]
+
+    need_any = checks.get("must_call_tool_any") or []
+    if need_any and not any(n in tool_names for n in need_any):
+        failures.append(
+            f"none of must_call_tool_any called: {need_any} (saw {tool_names})"
+        )
+
+    for tool in checks.get("must_call_tool_all") or []:
+        if tool not in tool_names:
+            failures.append(f"missing must_call_tool_all: {tool}")
+
+    for tool in checks.get("must_not_call_tool") or []:
+        if tool in tool_names:
+            failures.append(f"forbidden tool called: {tool}")
+
+    min_tools = checks.get("min_tool_calls")
+    if min_tools is not None and len(tool_calls) < min_tools:
+        failures.append(f"tool_calls {len(tool_calls)} < min_tool_calls {min_tools}")
+
+    max_tools = checks.get("max_tool_calls")
+    if max_tools is not None and len(tool_calls) > max_tools:
+        failures.append(f"tool_calls {len(tool_calls)} > max_tool_calls {max_tools}")
+
+    # Skill usage = did the model call the Skill tool with input.skill == name?
+    invoked_skills = {
+        str(t["input"].get("skill", "")).strip()
+        for t in tool_calls
+        if t["name"] == "Skill"
+    }
+    for skill in checks.get("must_use_skill") or []:
+        if skill not in invoked_skills:
+            failures.append(
+                f"skill {skill!r} not invoked (saw Skill calls: {sorted(invoked_skills) or 'none'})"
+            )
+
     return {
         "case_id": case["id"],
         "request_id": request_id,
@@ -143,7 +181,26 @@ def _run_one_case(
         "duration_s": round(duration, 2),
         "cost_usd": req.get("total_cost_usd"),
         "assistant_chars": len(text),
+        "tool_calls": tool_names,
     }
+
+
+def _extract_tool_calls(emitter, request_id: str) -> list[dict]:
+    """Read raw trace events, return list of tool_use dicts."""
+    calls: list[dict] = []
+    for ev in emitter.read_raw(request_id):
+        if ev.get("kind") != "stream:assistant":
+            continue
+        message = (ev.get("payload") or {}).get("message") or {}
+        for block in message.get("content") or []:
+            if block.get("type") == "tool_use":
+                calls.append(
+                    {
+                        "name": block.get("name", ""),
+                        "input": block.get("input") or {},
+                    }
+                )
+    return calls
 
 
 @eval_app.command("run")
@@ -187,9 +244,11 @@ def run(
         r = _run_one_case(agent_dir, case, eval_tag)
         results.append(r)
         mark = "PASS" if r["passed"] else "FAIL"
+        tool_summary = ",".join(r.get("tool_calls") or []) or "none"
         typer.echo(
             f"      {mark}  req={r['request_id'][:12]} "
-            f"dur={r['duration_s']}s cost=${r['cost_usd'] or 0:.4f}"
+            f"dur={r['duration_s']}s cost=${r['cost_usd'] or 0:.4f} "
+            f"tools=[{tool_summary}]"
         )
         for f in r["failures"]:
             typer.echo(f"        - {f}")

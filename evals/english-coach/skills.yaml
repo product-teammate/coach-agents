@@ -1,0 +1,85 @@
+agent: english-coach
+description: >
+  One case per skill. In CC 2.x the agent invokes a skill via the `Skill` tool
+  (input.skill="<name>"). We assert both that invocation happened and at least
+  one follow-up concrete tool was used (Skill alone without body execution is a
+  soft failure the coach should surface for iteration).
+
+cases:
+  - id: skill.kb-research
+    category: skill
+    input: >
+      Please use the kb-research skill to research "phrasal verbs for business
+      email" and return a short summary plus 3 reference links.
+    timeout_s: 240
+    checks:
+      min_assistant_chars: 30
+      max_duration_s: 240
+      max_cost_usd: 1.00
+      must_use_skill: [kb-research]
+      min_tool_calls: 1
+
+  - id: skill.quiz-maker
+    category: skill
+    input: >
+      Please use the quiz-maker skill to build a 3-question multiple-choice
+      quiz about English present perfect tense and return the viewer URL.
+    timeout_s: 240
+    checks:
+      min_assistant_chars: 30
+      max_duration_s: 240
+      max_cost_usd: 1.00
+      must_use_skill: [quiz-maker]
+      min_tool_calls: 1
+
+  - id: skill.flashcard-deck
+    category: skill
+    input: >
+      Please use the flashcard-deck skill to build a 3-card deck about common
+      English phrasal verbs and return the viewer URL.
+    timeout_s: 240
+    checks:
+      min_assistant_chars: 30
+      max_duration_s: 240
+      max_cost_usd: 1.00
+      must_use_skill: [flashcard-deck]
+      min_tool_calls: 1
+
+  - id: skill.memory-ops
+    category: skill
+    input: >
+      Please use the memory-ops skill to check MEMORY.md and summarize what
+      English topics I have studied.
+    timeout_s: 120
+    checks:
+      min_assistant_chars: 10
+      max_duration_s: 120
+      max_cost_usd: 0.50
+      must_use_skill: [memory-ops]
+      min_tool_calls: 1
+
+  - id: skill.heartbeat-ops
+    category: skill
+    input: >
+      Please use the heartbeat-ops skill to set up a daily 8am Slack DM
+      reminder asking me to learn one new English word.
+    timeout_s: 180
+    checks:
+      min_assistant_chars: 20
+      max_duration_s: 180
+      max_cost_usd: 0.80
+      must_use_skill: [heartbeat-ops]
+      min_tool_calls: 1
+
+  - id: skill.conversation-recap
+    category: skill
+    input: >
+      Please use the conversation-recap skill to give me a short recap of
+      what we covered this session.
+    timeout_s: 120
+    checks:
+      min_assistant_chars: 20
+      max_duration_s: 120
+      max_cost_usd: 0.50
+      must_use_skill: [conversation-recap]
+      min_tool_calls: 1
