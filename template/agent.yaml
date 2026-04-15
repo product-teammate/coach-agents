@@ -6,13 +6,17 @@ agent:
 
 brain:
   type: claude-code
-  model: claude-sonnet-4-5
+  model: sonnet
+  effort: high
   permission_mode: acceptEdits
   allowed_tools:
     - Read
     - Edit
     - Write
     - WebFetch
+    - Bash
+    - Grep
+    - Glob
   timeout_s: 120
 
 persona:
@@ -29,7 +33,13 @@ knowledge:
   mode: file-read
   max_docs_per_query: 5
 
-skills: []
+skills:
+  - kb-research
+  - quiz-maker
+  - flashcard-deck
+  - memory-ops
+  - heartbeat-ops
+  - conversation-recap
 
 channels:
   - type: telegram
