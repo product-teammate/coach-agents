@@ -101,6 +101,18 @@ coach learn my-coach --from urls.txt        # BATCH - explicit URL list
 coach learn my-coach --dry-run              # AUTO plan only, no writes
 ```
 
+Ask the bot for a recurring task (powered by the `heartbeat-ops` skill
+— see [docs/scheduling.md](docs/scheduling.md)):
+
+```
+You:  every morning at 8am send me a phrasal verb
+Ava:  Got it — every day at 08:00. Where should I send results
+      (dm / thread / channel:name)?
+You:  dm
+Ava:  Scheduled. First run tomorrow 08:00 to this DM. Say "stop the
+      8am phrasal verb" to cancel.
+```
+
 Iterate without the `claude` CLI logged in:
 
 ```bash
@@ -116,6 +128,7 @@ COACH_BRAIN_STUB=1 coach start --all
 - [docs/channel-interface.md](docs/channel-interface.md) — Channel Protocol
 - [docs/skill-authoring.md](docs/skill-authoring.md) — how to write a SKILL.md
 - [docs/permissions.md](docs/permissions.md) — tool whitelist merge logic
+- [docs/scheduling.md](docs/scheduling.md) — HEARTBEAT.md, CRON.md, and the "where should I send results?" flow
 - [docs/security.md](docs/security.md) — tokens, gists, logs
 - [docs/phase-2-roadmap.md](docs/phase-2-roadmap.md) — what is next
 

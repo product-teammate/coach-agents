@@ -24,6 +24,7 @@ dependencies = [
     "apscheduler>=3.10",
     "httpx>=0.27",
     "markdownify>=0.12",
+    "croniter>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -38,7 +39,7 @@ dev = [
 coach = "coach_cli.__main__:app"
 
 [tool.setuptools.packages.find]
-include = ["brains*", "channels*", "runtime*", "coach_cli*"]
+include = ["brains*", "channels*", "runtime*", "coach_cli*", "coach_agents*"]
 
 [tool.ruff]
 line-length = 100

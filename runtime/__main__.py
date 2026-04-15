@@ -8,6 +8,7 @@ router, and schedules heartbeat jobs for agents that opted in.
 from __future__ import annotations
 
 import asyncio
+import os
 import signal
 from pathlib import Path
 
@@ -22,10 +23,14 @@ from channels.telegram.adapter import TelegramChannel
 from runtime.env import load_dotenv
 from runtime.loader import LoadedAgent, discover_agents
 from runtime.onboarding import run_onboarding_tick
+from runtime.cron_loader import CronEntry, parse_cron_file, reconcile
 from runtime.permissions import merge_tools
 from runtime.queue import PerUserQueueManager
 from runtime.router import Router
 from runtime.scheduler import CoachScheduler
+
+
+CRON_POLL_INTERVAL_S = int(os.environ.get("COACH_CRON_POLL_S", "60"))
 
 
 def _build_channel(agent: LoadedAgent, ch_cfg: dict):  # noqa: ANN401 — factory
@@ -155,6 +160,88 @@ def _make_heartbeat_job(
     return _tick
 
 
+def _make_cron_job(
+    agent: LoadedAgent,
+    brain: ClaudeCodeBrain,
+    channel,
+    entry: CronEntry,
+):  # type: ignore[no-untyped-def]
+    """Build a zero-arg async callable that fires one cron turn."""
+    brain_cfg = agent.config.get("brain", {})
+
+    async def _fire() -> None:
+        inv = BrainInvocation(
+            agent_dir=agent.directory,
+            user_message=f"Scheduled task ({entry.cron_expr}): {entry.task}",
+            session_id=f"cron:{agent.agent_id}:{entry.job_id}",
+            allowed_tools=merge_tools(
+                brain_cfg.get("allowed_tools") or [], agent.skills
+            ),
+            model=brain_cfg.get("model"),
+            timeout_s=int(brain_cfg.get("timeout_s") or 120),
+            permission_mode=brain_cfg.get("permission_mode") or "acceptEdits",
+        )
+        buffer: list[str] = []
+        async for chunk in brain.invoke(inv):
+            buffer.append(chunk)
+        reply = "".join(buffer).strip()
+        if not reply:
+            logger.info(
+                "cron[{}:{}] produced empty reply", agent.agent_id, entry.job_id
+            )
+            return
+        try:
+            await channel.send(entry.target, Widget(type="text", content=reply))
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "cron[{}:{}] send failed", agent.agent_id, entry.job_id
+            )
+
+    return _fire
+
+
+def _setup_cron_reload(
+    agent: LoadedAgent,
+    brain: ClaudeCodeBrain,
+    channel,
+    scheduler: CoachScheduler,
+    poll_interval_s: int = CRON_POLL_INTERVAL_S,
+) -> None:
+    """Register initial cron jobs and a polling job that reconciles on file change."""
+    cron_path = agent.directory / "CRON.md"
+    registered: dict[str, CronEntry] = {}
+
+    def _add(job_id: str, cron_expr: str, cb) -> None:  # type: ignore[no-untyped-def]
+        scheduler.add_cron(agent.agent_id, job_id, cron_expr, cb)
+
+    def _remove(job_id: str) -> None:
+        scheduler.remove_job(f"{agent.agent_id}:{job_id}")
+
+    def _make_cb(entry: CronEntry):  # type: ignore[no-untyped-def]
+        return _make_cron_job(agent, brain, channel, entry)
+
+    def _tick_once() -> None:
+        entries = parse_cron_file(cron_path)
+        reconcile(agent.agent_id, entries, registered, _add, _remove, _make_cb)
+
+    _tick_once()
+
+    async def _poll() -> None:
+        try:
+            _tick_once()
+        except Exception:  # noqa: BLE001
+            logger.exception("cron[{}] reload failed", agent.agent_id)
+
+    scheduler.add_interval(
+        f"cron-reload:{agent.agent_id}", poll_interval_s, _poll
+    )
+    logger.info(
+        "cron[{}] reload poller active every {}s",
+        agent.agent_id,
+        poll_interval_s,
+    )
+
+
 async def _run() -> None:
     load_dotenv()
     agents = discover_agents()
@@ -209,11 +296,14 @@ async def _run() -> None:
                 )
         cron = proactive.get("cron") or {}
         if cron.get("enabled"):
-            logger.warning(
-                "cron[{}] loaded but job registration API is not yet exposed "
-                "to skills; see docs/phase-2-roadmap.md",
-                agent.agent_id,
-            )
+            channel = _primary_channel(agent, primary_by_agent)
+            if channel is None:
+                logger.warning(
+                    "cron[{}] enabled but no channel running; skipping",
+                    agent.agent_id,
+                )
+            else:
+                _setup_cron_reload(agent, brain, channel, scheduler)
 
     stop = asyncio.Event()
     loop = asyncio.get_event_loop()

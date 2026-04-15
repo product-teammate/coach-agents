@@ -77,6 +77,11 @@
    content.
 3. The produced reply is posted via the agent's first started channel
    to `proactive.heartbeat.target_chat_id` (if configured).
-4. `proactive.cron.enabled: true` is accepted by the schema but logs a
-   warning in Phase 1 — skills cannot yet register cron jobs (see
-   [phase-2-roadmap.md](phase-2-roadmap.md)).
+4. `proactive.cron.enabled: true` wires `runtime/cron_loader.py`, which
+   parses `agents/<id>/CRON.md` into individual APScheduler jobs. A
+   60-second polling job (configurable via `COACH_CRON_POLL_S`) re-reads
+   the file and reconciles — new lines register, removed lines
+   unregister, unchanged lines are left in place. No restart required
+   when skills add or remove entries. See [scheduling.md](scheduling.md)
+   for the file format and the `heartbeat-ops` skill for the five-step
+   playbook (parse → ask target → check channel → persist → confirm).

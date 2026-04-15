@@ -85,6 +85,16 @@ ranker. When the agent.yaml sets `knowledge.mode: file-read` and
 cap is advisory. Claude uses its own `Read` tool on whichever files look
 relevant, bounded by the tool whitelist.
 
+## Scheduled re-research
+
+Knowledge files are static once written, but the `heartbeat-ops` skill
+(v2) can register recurring tasks that re-ingest or refresh a topic —
+e.g. _"every Monday re-research the top 3 stale entries in
+knowledge/"_. The skill persists these as cron lines in `CRON.md` and
+the runtime fires them on schedule; each firing is a normal brain turn
+with `WebFetch` and `Write` available. See
+[scheduling.md](scheduling.md) for the playbook.
+
 ## Roadmap
 
 Phase 2 introduces a local RAG option (Ollama embeddings + a tiny SQLite
