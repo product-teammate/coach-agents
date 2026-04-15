@@ -17,7 +17,7 @@ brain:
     - Grep
     - Glob
   timeout_s: 120
-  advise_mode: true
+  effort: high
 
 persona:
   soul: SOUL.md

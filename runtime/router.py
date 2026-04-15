@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from loguru import logger
 
 from brains._base import Brain, BrainInvocation
-from brains.advise_mode import build as build_advise_prompt
 from channels._base import Channel, InboundMessage, Widget
 from observability import get_emitter
 from runtime.loader import LoadedAgent
@@ -65,9 +64,7 @@ class Router:
             timeout_s=int(brain_cfg.get("timeout_s") or 120),
             permission_mode=brain_cfg.get("permission_mode") or "acceptEdits",
             request_id=request_id,
-            append_system_prompt=build_advise_prompt(
-                bool(brain_cfg.get("advise_mode"))
-            ),
+            effort=brain_cfg.get("effort"),
         )
 
         logger.info("brain invoke req={} agent={}", request_id, agent_id)

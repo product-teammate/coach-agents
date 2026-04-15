@@ -83,8 +83,8 @@ class ClaudeCodeBrain:
             args += ["--allowed-tools", ",".join(inv.allowed_tools)]
         if inv.model:
             args += ["--model", inv.model]
-        if inv.append_system_prompt:
-            args += ["--append-system-prompt", inv.append_system_prompt]
+        if inv.effort:
+            args += ["--effort", inv.effort]
 
         logger.debug("claude_code spawn: {}", " ".join(args))
 

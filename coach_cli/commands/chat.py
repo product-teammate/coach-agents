@@ -16,7 +16,6 @@ import yaml
 from loguru import logger
 
 from brains._base import BrainInvocation
-from brains.advise_mode import build as build_advise_prompt
 from brains.claude_code.adapter import ClaudeCodeBrain
 from observability import get_emitter
 from runtime.permissions import merge_tools
@@ -81,9 +80,7 @@ def chat(
         timeout_s=timeout,
         permission_mode=brain_cfg.get("permission_mode") or "acceptEdits",
         request_id=request_id,
-        append_system_prompt=build_advise_prompt(
-            bool(brain_cfg.get("advise_mode"))
-        ),
+        effort=brain_cfg.get("effort"),
     )
 
     brain = ClaudeCodeBrain()
