@@ -30,7 +30,7 @@ from typing import Any, AsyncIterator
 from loguru import logger
 
 from brains._base import BrainInvocation
-from brains.claude_code.session import session_path
+from brains.claude_code.session import session_uuid
 
 
 class ClaudeCodeError(RuntimeError):
@@ -56,13 +56,13 @@ class ClaudeCodeBrain:
         yield f"[stub] received: {inv.user_message}"
 
     async def _spawn(self, inv: BrainInvocation) -> AsyncIterator[str]:
-        session_file = session_path(inv.agent_dir, inv.session_id)
+        sid = session_uuid(inv.agent_dir, inv.session_id)
         args = [
             self._binary,
             "-p",
             inv.user_message,
-            "--session",
-            str(session_file),
+            "--session-id",
+            sid,
             "--output-format",
             "stream-json",
             "--permission-mode",
@@ -74,6 +74,8 @@ class ClaudeCodeBrain:
         if inv.model:
             args += ["--model", inv.model]
 
+        logger.debug("claude_code spawn: {}", " ".join(args))
+
         proc = await asyncio.create_subprocess_exec(
             *args,
             cwd=str(inv.agent_dir),
@@ -82,16 +84,47 @@ class ClaudeCodeBrain:
         )
 
         assert proc.stdout is not None
+        assert proc.stderr is not None
+
+        stderr_chunks: list[bytes] = []
+
+        async def _drain_stderr() -> None:
+            assert proc.stderr is not None
+            while True:
+                chunk = await proc.stderr.read(4096)
+                if not chunk:
+                    return
+                stderr_chunks.append(chunk)
+
+        stderr_task = asyncio.create_task(_drain_stderr())
+
         try:
             async for chunk in _parse_stream(proc.stdout, timeout_s=inv.timeout_s):
                 yield chunk
         finally:
             if proc.returncode is None:
-                proc.terminate()
                 try:
                     await asyncio.wait_for(proc.wait(), timeout=5)
                 except asyncio.TimeoutError:
-                    proc.kill()
+                    proc.terminate()
+                    try:
+                        await asyncio.wait_for(proc.wait(), timeout=5)
+                    except asyncio.TimeoutError:
+                        proc.kill()
+            try:
+                await asyncio.wait_for(stderr_task, timeout=2)
+            except asyncio.TimeoutError:
+                stderr_task.cancel()
+
+            stderr_text = b"".join(stderr_chunks).decode("utf-8", errors="replace").strip()
+            if proc.returncode and proc.returncode != 0:
+                logger.error(
+                    "claude_code exit={} stderr={}",
+                    proc.returncode,
+                    stderr_text[:2000] or "<empty>",
+                )
+            elif stderr_text:
+                logger.debug("claude_code stderr: {}", stderr_text[:500])
 
 
 async def _parse_stream(

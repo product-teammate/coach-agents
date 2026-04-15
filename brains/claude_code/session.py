@@ -1,22 +1,20 @@
-"""Claude Code session file helpers.
+"""Claude Code session helpers.
 
-A session is just a JSON file on disk the `claude` CLI reads/writes. We
-hash the logical session_id to a filename-safe slug and keep it under the
-agent's `.runtime/sessions/` directory.
+Claude CLI 2.x persists sessions in ``~/.claude/`` keyed by a UUID passed
+via ``--session-id``. We derive a deterministic UUIDv5 from the
+(agent_dir, session_id) pair so the same logical conversation always maps
+to the same claude session.
 """
 
 from __future__ import annotations
 
-import hashlib
+import uuid
 from pathlib import Path
 
+_NAMESPACE = uuid.UUID("6f1d4c2a-1a3b-4b9e-8c2a-9d1f5c7e2b10")
 
-def session_path(agent_dir: Path, session_id: str) -> Path:
-    """Return the session JSON path for an agent+session pair.
 
-    Creates the parent directory if needed.
-    """
-    digest = hashlib.sha1(session_id.encode("utf-8")).hexdigest()[:16]
-    sessions_dir = agent_dir / ".runtime" / "sessions"
-    sessions_dir.mkdir(parents=True, exist_ok=True)
-    return sessions_dir / f"{digest}.json"
+def session_uuid(agent_dir: Path, session_id: str) -> str:
+    """Return a deterministic UUID string for the given agent+session pair."""
+    name = f"{agent_dir.resolve()}::{session_id}"
+    return str(uuid.uuid5(_NAMESPACE, name))
