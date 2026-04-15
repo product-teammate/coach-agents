@@ -1,0 +1,218 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1776273147587,
+  "projectRoot": "/Users/nova/Projects/personal/learing-agent/coach-agents",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "pytest",
+        "version": null,
+        "category": "testing"
+      }
+    ],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "pytest",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "tests"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "agents": {
+      "path": "agents",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1776273147573,
+      "keyFiles": []
+    },
+    "brains": {
+      "path": "brains",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1776273147574,
+      "keyFiles": [
+        "__init__.py",
+        "_base.py"
+      ]
+    },
+    "channels": {
+      "path": "channels",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1776273147574,
+      "keyFiles": [
+        "__init__.py",
+        "_base.py"
+      ]
+    },
+    "coach_agents": {
+      "path": "coach_agents",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1776273147574,
+      "keyFiles": [
+        "__init__.py"
+      ]
+    },
+    "coach_agents.egg-info": {
+      "path": "coach_agents.egg-info",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1776273147575,
+      "keyFiles": [
+        "PKG-INFO",
+        "SOURCES.txt",
+        "dependency_links.txt",
+        "entry_points.txt",
+        "requires.txt"
+      ]
+    },
+    "coach_cli": {
+      "path": "coach_cli",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1776273147575,
+      "keyFiles": [
+        "README.md",
+        "__init__.py",
+        "__main__.py",
+        "learn_core.py",
+        "publish_gist.py"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 12,
+      "lastAccessed": 1776273147575,
+      "keyFiles": [
+        "architecture.md",
+        "brain-interface.md",
+        "channel-interface.md",
+        "eval-plan.md",
+        "knowledge-management.md"
+      ]
+    },
+    "evals": {
+      "path": "evals",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1776273147575,
+      "keyFiles": []
+    },
+    "observability": {
+      "path": "observability",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1776273147575,
+      "keyFiles": [
+        "__init__.py",
+        "trace.py"
+      ]
+    },
+    "runtime": {
+      "path": "runtime",
+      "purpose": null,
+      "fileCount": 10,
+      "lastAccessed": 1776273147575,
+      "keyFiles": [
+        "__init__.py",
+        "__main__.py",
+        "cron_loader.py",
+        "env.py",
+        "loader.py"
+      ]
+    },
+    "schemas": {
+      "path": "schemas",
+      "purpose": "Schema definitions",
+      "fileCount": 2,
+      "lastAccessed": 1776273147576,
+      "keyFiles": [
+        "agent.schema.json",
+        "skill.schema.json"
+      ]
+    },
+    "skills": {
+      "path": "skills",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1776273147576,
+      "keyFiles": []
+    },
+    "template": {
+      "path": "template",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1776273147576,
+      "keyFiles": [
+        "HEARTBEAT.md",
+        "SOUL.md",
+        "USER.md",
+        "agent.yaml"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 8,
+      "lastAccessed": 1776273147576,
+      "keyFiles": [
+        "__init__.py",
+        "test_claude_adapter.py",
+        "test_cli.py",
+        "test_cron_reload.py",
+        "test_e2e_stub.py"
+      ]
+    },
+    "coach_agents/scripts": {
+      "path": "coach_agents/scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 6,
+      "lastAccessed": 1776273147577,
+      "keyFiles": [
+        "__init__.py",
+        "_common.py",
+        "add_task.py"
+      ]
+    },
+    "tests/fixtures": {
+      "path": "tests/fixtures",
+      "purpose": "Test fixtures",
+      "fileCount": 0,
+      "lastAccessed": 1776273147581,
+      "keyFiles": []
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}

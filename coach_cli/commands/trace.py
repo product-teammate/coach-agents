@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 import time
 from datetime import datetime
 from typing import Optional
@@ -117,6 +118,16 @@ def show_cmd(
         typer.echo(req["error_tail"])
 
     events = em.read_raw(req["request_id"])
+
+    # Print spawn command before the timeline for fast copy-paste debug.
+    for ev in events:
+        if ev.get("kind") == "brain_spawn":
+            argv = (ev.get("payload") or {}).get("argv") or []
+            if argv:
+                typer.echo("─── claude command ───")
+                typer.echo(shlex.join(str(a) for a in argv))
+            break
+
     typer.echo(f"─── events ({len(events)}) ───")
     for ev in events:
         if raw:
@@ -146,6 +157,14 @@ def show_cmd(
                     f"${payload.get('total_cost_usd')}"
                 )
             typer.echo(f"  {_fmt_ts(ev.get('ts'))}  stream:{inner_type:<12} {brief}")
+        elif kind == "brain_spawn":
+            argv = payload.get("argv") or []
+            pid = payload.get("pid")
+            cwd = payload.get("cwd", "?")
+            typer.echo(
+                f"  {_fmt_ts(ev.get('ts'))}  brain_spawn          "
+                f"pid={pid} argc={len(argv)} cwd={cwd}"
+            )
         else:
             typer.echo(f"  {_fmt_ts(ev.get('ts'))}  {kind}")
 

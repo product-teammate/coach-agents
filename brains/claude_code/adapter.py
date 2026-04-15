@@ -107,7 +107,17 @@ class ClaudeCodeBrain:
         emitter = get_emitter()
         rid = inv.request_id
         if rid:
-            emitter.event(rid, "brain_spawn", {"argv": args, "pid": proc.pid})
+            emitter.event(
+                rid,
+                "brain_spawn",
+                {
+                    "argv": args,
+                    "pid": proc.pid,
+                    "cwd": str(inv.agent_dir),
+                    "binary": self._binary,
+                    "session_id_claude": sid,
+                },
+            )
 
         stderr_chunks: list[bytes] = []
 
