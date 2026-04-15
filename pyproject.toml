@@ -39,7 +39,7 @@ dev = [
 coach = "coach_cli.__main__:app"
 
 [tool.setuptools.packages.find]
-include = ["brains*", "channels*", "runtime*", "coach_cli*", "coach_agents*"]
+include = ["brains*", "channels*", "runtime*", "coach_cli*", "coach_agents*", "observability*"]
 
 [tool.ruff]
 line-length = 100

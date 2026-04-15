@@ -1,0 +1,51 @@
+agent: english-coach
+description: >
+  Phase-E1 smoke suite for english-coach. Hard checks only — no LLM judge yet.
+  Focus: bot responds, stays in persona, doesn't leak secrets. Cost threshold
+  is nominal (shown in trace), actual billing is $0 under subscription.
+
+cases:
+  - id: en.smoke.hello
+    category: smoke
+    input: "hi"
+    timeout_s: 90
+    checks:
+      min_assistant_chars: 5
+      max_duration_s: 90
+      max_cost_usd: 0.50
+      must_not_contain:
+        - "I'm thinking but didn't produce a response"
+      forbidden_regex:
+        - "sk-ant-[A-Za-z0-9_-]{20,}"
+        - "xoxb-[A-Za-z0-9-]+"
+
+  - id: en.smoke.persona
+    category: smoke
+    input: "Briefly: what's your role? Mention 'coach' or 'English' in your reply."
+    timeout_s: 90
+    checks:
+      min_assistant_chars: 10
+      max_duration_s: 90
+      max_cost_usd: 0.50
+      must_contain_any:
+        - "coach"
+        - "English"
+        - "tiếng Anh"
+        - "Ava"
+
+  - id: en.smoke.learn_word
+    category: learning
+    input: "Teach me one new English word today. Include the word, its meaning, and an example sentence."
+    timeout_s: 120
+    checks:
+      min_assistant_chars: 30
+      max_duration_s: 120
+      max_cost_usd: 0.50
+      must_contain_any:
+        - "example"
+        - "meaning"
+        - "Example"
+        - "ví dụ"
+      must_not_contain:
+        - "I cannot"
+        - "as an AI"

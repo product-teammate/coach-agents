@@ -29,8 +29,11 @@ from typing import Any, AsyncIterator
 
 from loguru import logger
 
+from pathlib import Path
+
 from brains._base import BrainInvocation
 from brains.claude_code.session import session_uuid
+from observability import get_emitter
 
 
 class ClaudeCodeError(RuntimeError):
@@ -57,12 +60,19 @@ class ClaudeCodeBrain:
 
     async def _spawn(self, inv: BrainInvocation) -> AsyncIterator[str]:
         sid = session_uuid(inv.agent_dir, inv.session_id)
+        # claude CLI stores sessions at ~/.claude/projects/<cwd-hash>/<sid>.jsonl.
+        # If the file exists, this is a continuation → use --resume. Otherwise
+        # first turn → use --session-id to mint it.
+        cwd_hash = str(inv.agent_dir.resolve()).replace("/", "-")
+        session_file = (
+            Path.home() / ".claude" / "projects" / cwd_hash / f"{sid}.jsonl"
+        )
+        session_flag = ["--resume", sid] if session_file.exists() else ["--session-id", sid]
         args = [
             self._binary,
             "-p",
             inv.user_message,
-            "--session-id",
-            sid,
+            *session_flag,
             "--output-format",
             "stream-json",
             "--permission-mode",
@@ -86,6 +96,11 @@ class ClaudeCodeBrain:
         assert proc.stdout is not None
         assert proc.stderr is not None
 
+        emitter = get_emitter()
+        rid = inv.request_id
+        if rid:
+            emitter.event(rid, "brain_spawn", {"argv": args, "pid": proc.pid})
+
         stderr_chunks: list[bytes] = []
 
         async def _drain_stderr() -> None:
@@ -99,7 +114,12 @@ class ClaudeCodeBrain:
         stderr_task = asyncio.create_task(_drain_stderr())
 
         try:
-            async for chunk in _parse_stream(proc.stdout, timeout_s=inv.timeout_s):
+            async for chunk in _parse_stream(
+                proc.stdout,
+                timeout_s=inv.timeout_s,
+                emitter=emitter if rid else None,
+                request_id=rid,
+            ):
                 yield chunk
         finally:
             if proc.returncode is None:
@@ -128,7 +148,11 @@ class ClaudeCodeBrain:
 
 
 async def _parse_stream(
-    stream: asyncio.StreamReader, *, timeout_s: int
+    stream: asyncio.StreamReader,
+    *,
+    timeout_s: int,
+    emitter: Any = None,
+    request_id: str | None = None,
 ) -> AsyncIterator[str]:
     """Parse stream-json events and yield user-visible text."""
 
@@ -140,6 +164,9 @@ async def _parse_stream(
         if event is None:
             continue
         etype = event.get("type")
+
+        if emitter and request_id:
+            emitter.event(request_id, f"stream:{etype or 'unknown'}", event)
 
         if etype == "assistant":
             message = event.get("message") or {}
@@ -164,6 +191,16 @@ async def _parse_stream(
 
         elif etype == "result":
             subtype = event.get("subtype")
+            if emitter and request_id:
+                try:
+                    emitter.update_usage(
+                        request_id,
+                        usage=event.get("usage") or {},
+                        cost_usd=event.get("total_cost_usd"),
+                        num_turns=event.get("num_turns"),
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
             if subtype == "success":
                 # Only use as fallback when nothing was streamed/assistant-ed
                 if not assistant_text_seen:

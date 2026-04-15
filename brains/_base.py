@@ -38,6 +38,7 @@ class BrainInvocation:
     model: str | None = None
     timeout_s: int = 120
     permission_mode: str = "acceptEdits"
+    request_id: str | None = None
 
 
 class Brain(Protocol):
