@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://product-teammate.github.io/coach-agents/schemas/agent.schema.json",
+  "title": "AgentConfig",
+  "type": "object",
+  "required": ["agent", "brain", "persona", "channels"],
+  "additionalProperties": false,
+  "properties": {
+    "agent": {
+      "type": "object",
+      "required": ["id", "name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "description": { "type": "string" }
+      }
+    },
+    "brain": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["claude-code", "codex", "antigravity"] },
+        "model": { "type": "string" },
+        "permission_mode": { "enum": ["default", "acceptEdits", "plan", "bypassPermissions"] },
+        "allowed_tools": { "type": "array", "items": { "type": "string" } },
+        "timeout_s": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "persona": {
+      "type": "object",
+      "required": ["soul"],
+      "additionalProperties": false,
+      "properties": {
+        "soul": { "type": "string" },
+        "user": { "type": "string" }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string" },
+        "auto_update": { "type": "boolean" }
+      }
+    },
+    "knowledge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dir": { "type": "string" },
+        "mode": { "enum": ["file-read", "rag"] },
+        "max_docs_per_query": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["type", "enabled"],
+        "additionalProperties": false,
+        "properties": {
+          "type": { "enum": ["telegram", "slack", "discord", "cli"] },
+          "enabled": { "type": "boolean" },
+          "env_prefix": { "type": "string" },
+          "allow_from": { "type": "array", "items": { "type": ["string", "integer"] } },
+          "mode": { "enum": ["polling", "webhook"] }
+        }
+      }
+    },
+    "proactive": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "heartbeat": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "interval_s": { "type": "integer", "minimum": 60 },
+            "file": { "type": "string" }
+          }
+        },
+        "cron": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "enabled": { "type": "boolean" } }
+        }
+      }
+    },
+    "viewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "renderer_base": { "type": "string", "format": "uri" },
+        "gist_visibility": { "enum": ["public", "secret"] }
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "log_level": { "enum": ["trace", "debug", "info", "warn", "error"] }
+      }
+    }
+  }
+}

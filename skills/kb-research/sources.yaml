@@ -1,0 +1,32 @@
+# Allowlisted research sources for kb-research.
+# Only domains matching one of these entries may be fetched.
+
+allowlist:
+  - domain: developer.mozilla.org
+    trust: primary
+    note: MDN — canonical web platform docs.
+  - domain: web.dev
+    trust: primary
+    note: Google/Chrome team explainers.
+  - domain: docs.python.org
+    trust: primary
+  - domain: playwright.dev
+    trust: primary
+  - domain: en.wikipedia.org
+    trust: secondary
+    note: Use for context, not as sole source.
+  - domain: arxiv.org
+    trust: secondary
+  - domain: css-tricks.com
+    trust: community
+  - domain: smashingmagazine.com
+    trust: community
+  - domain: www.khanacademy.org
+    trust: primary
+  - domain: ocw.mit.edu
+    trust: primary
+
+depth_limits:
+  shallow: 2
+  standard: 5
+  deep: 10

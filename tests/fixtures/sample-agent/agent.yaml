@@ -1,0 +1,49 @@
+agent:
+  id: sample-agent
+  name: Sample Agent
+  version: 1.0.0
+  description: Fixture used by the smoke tests.
+
+brain:
+  type: claude-code
+  model: claude-sonnet-4-5
+  permission_mode: acceptEdits
+  allowed_tools:
+    - Read
+    - Write
+  timeout_s: 60
+
+persona:
+  soul: SOUL.md
+  user: USER.md
+
+memory:
+  file: MEMORY.md
+  auto_update: true
+
+knowledge:
+  dir: knowledge/
+  mode: file-read
+  max_docs_per_query: 3
+
+skills:
+  - kb-research
+
+channels:
+  - type: cli
+    enabled: true
+
+proactive:
+  heartbeat:
+    enabled: false
+    interval_s: 1800
+    file: HEARTBEAT.md
+  cron:
+    enabled: false
+
+viewer:
+  renderer_base: https://product-teammate.github.io/gist-render/viewer/
+  gist_visibility: secret
+
+observability:
+  log_level: info

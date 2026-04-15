@@ -1,0 +1,54 @@
+agent:
+  id: example-coach
+  name: Example Coach
+  version: 1.0.0
+  description: ""
+
+brain:
+  type: claude-code
+  model: claude-sonnet-4-5
+  permission_mode: acceptEdits
+  allowed_tools:
+    - Read
+    - Edit
+    - Write
+    - WebFetch
+  timeout_s: 120
+
+persona:
+  soul: SOUL.md
+  user: USER.md
+  # CLAUDE.md is generated at runtime — do NOT edit manually
+
+memory:
+  file: MEMORY.md
+  auto_update: true
+
+knowledge:
+  dir: knowledge/
+  mode: file-read
+  max_docs_per_query: 5
+
+skills: []
+
+channels:
+  - type: telegram
+    enabled: true
+    env_prefix: TELEGRAM_EXAMPLE_
+    allow_from: []
+    mode: polling
+
+proactive:
+  heartbeat:
+    enabled: true
+    interval_s: 1800
+    file: HEARTBEAT.md
+  cron:
+    enabled: true
+
+viewer:
+  renderer_base: https://product-teammate.github.io/gist-render/viewer/
+  gist_visibility: secret
+
+observability:
+  log_level: info

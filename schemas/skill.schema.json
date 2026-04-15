@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://product-teammate.github.io/coach-agents/schemas/skill.schema.json",
+  "title": "SkillFrontmatter",
+  "type": "object",
+  "required": ["name", "version", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "description": { "type": "string", "minLength": 1 },
+    "required_tools": { "type": "array", "items": { "type": "string" } },
+    "inputs": {
+      "type": "array",
+      "items": { "type": ["string", "object"] }
+    },
+    "outputs": {
+      "type": "array",
+      "items": { "type": ["string", "object"] }
+    },
+    "triggers": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
