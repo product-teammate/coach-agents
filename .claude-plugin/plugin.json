@@ -1,0 +1,5 @@
+{
+  "name": "coach-agents-skills",
+  "version": "1.0.0",
+  "description": "Project-local coaching skills (kb-research, quiz-maker, flashcard-deck, memory-ops, heartbeat-ops, conversation-recap, knowledge-ingest, cron-ops, skill-evolver)"
+}

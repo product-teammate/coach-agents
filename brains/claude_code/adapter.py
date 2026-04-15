@@ -86,6 +86,12 @@ class ClaudeCodeBrain:
         if inv.effort:
             args += ["--effort", inv.effort]
 
+        # Expose the project-local skills plugin if present.
+        # agent_dir = <project_root>/agents/<id>; walk two parents up.
+        project_root = inv.agent_dir.resolve().parent.parent
+        if (project_root / ".claude-plugin" / "plugin.json").exists():
+            args += ["--plugin-dir", str(project_root)]
+
         logger.debug("claude_code spawn: {}", " ".join(args))
 
         proc = await asyncio.create_subprocess_exec(

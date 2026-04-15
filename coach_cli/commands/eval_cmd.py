@@ -161,11 +161,17 @@ def _run_one_case(
         failures.append(f"tool_calls {len(tool_calls)} > max_tool_calls {max_tools}")
 
     # Skill usage = did the model call the Skill tool with input.skill == name?
-    invoked_skills = {
-        str(t["input"].get("skill", "")).strip()
-        for t in tool_calls
-        if t["name"] == "Skill"
-    }
+    # Skill names may carry a plugin namespace prefix like "plugin:skill".
+    invoked_skills: set[str] = set()
+    for t in tool_calls:
+        if t["name"] != "Skill":
+            continue
+        raw = str(t["input"].get("skill", "")).strip()
+        if not raw:
+            continue
+        invoked_skills.add(raw)
+        if ":" in raw:
+            invoked_skills.add(raw.split(":", 1)[1])
     for skill in checks.get("must_use_skill") or []:
         if skill not in invoked_skills:
             failures.append(
