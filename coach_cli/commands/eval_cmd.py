@@ -16,6 +16,7 @@ import typer
 import yaml
 
 from brains._base import BrainInvocation
+from brains.advise_mode import build as build_advise_prompt
 from brains.claude_code.adapter import ClaudeCodeBrain
 from observability import get_emitter
 from runtime.permissions import merge_tools
@@ -58,6 +59,9 @@ def _run_one_case(
         timeout_s=int(case.get("timeout_s") or brain_cfg.get("timeout_s") or 120),
         permission_mode=brain_cfg.get("permission_mode") or "acceptEdits",
         request_id=request_id,
+        append_system_prompt=build_advise_prompt(
+            bool(brain_cfg.get("advise_mode"))
+        ),
     )
 
     brain = ClaudeCodeBrain()

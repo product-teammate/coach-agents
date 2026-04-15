@@ -39,6 +39,7 @@ class BrainInvocation:
     timeout_s: int = 120
     permission_mode: str = "acceptEdits"
     request_id: str | None = None
+    append_system_prompt: str | None = None
 
 
 class Brain(Protocol):
