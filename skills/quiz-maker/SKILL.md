@@ -53,6 +53,31 @@ triggers:
 >
 > Agent replies with `https://product-teammate.github.io/gist-render/viewer/?gist=abc123&mode=quiz`.
 
+## Scripts
+
+Prefer the shared publisher over raw `gh gist create` (requires the `Bash` tool):
+
+```bash
+echo '<quiz-json-here>' | python -m coach_cli.publish_gist \
+    --filename quiz.json \
+    --desc "Quiz: <topic>" \
+    --type quiz \
+    --renderer-base https://product-teammate.github.io/gist-render/viewer/
+```
+
+The script prints a JSON object with `gist_id`, `raw_url`, and a
+constructed `viewer_url`. Post the `viewer_url` to the learner.
+
+Python API (when a direct-run tool is available):
+
+```python
+from coach_cli.publish_gist import publish_gist_json, viewer_url
+gist_id, raw_url = publish_gist_json(
+    quiz, filename="quiz.json", description=f"Quiz: {topic}", secret=True
+)
+url = viewer_url(raw_url, type="quiz", renderer_base=renderer_base)
+```
+
 ## Constraints
 
 - Gist visibility: always honor `agent.yaml.viewer.gist_visibility`.

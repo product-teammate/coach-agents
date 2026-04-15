@@ -74,12 +74,19 @@ def doctor() -> None:
 
     for loaded in agents:
         for ch in loaded.config.get("channels", []):
-            if not ch.get("enabled") or ch.get("type") != "telegram":
+            if not ch.get("enabled"):
                 continue
+            ctype = ch.get("type")
             prefix = ch.get("env_prefix", "")
-            key = f"{prefix}BOT_TOKEN"
-            state = "ok" if os.environ.get(key) else "missing"
-            table.add_row(f"env {key}", state, loaded.agent_id)
+            if ctype == "telegram":
+                required_keys = [f"{prefix}BOT_TOKEN"]
+            elif ctype == "slack":
+                required_keys = [f"{prefix}BOT_TOKEN", f"{prefix}APP_TOKEN"]
+            else:
+                continue
+            for key in required_keys:
+                state = "ok" if os.environ.get(key) else "missing"
+                table.add_row(f"env {key}", state, loaded.agent_id)
 
         viewer = (loaded.config.get("viewer") or {}).get("renderer_base")
         if viewer:

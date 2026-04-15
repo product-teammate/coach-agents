@@ -1,0 +1,62 @@
+agent:
+  id: english-coach
+  name: English Coaching (Ava)
+  version: 1.0.0
+  description: English language coach, A2 -> C1
+
+brain:
+  type: claude-code
+  permission_mode: acceptEdits
+  allowed_tools:
+    - Read
+    - Edit
+    - Write
+    - WebFetch
+    - Bash
+    - Grep
+    - Glob
+  timeout_s: 120
+
+persona:
+  soul: SOUL.md
+  user: USER.md
+
+memory:
+  file: MEMORY.md
+  auto_update: true
+
+knowledge:
+  dir: knowledge/
+  mode: file-read
+  max_docs_per_query: 5
+
+skills:
+  - kb-research
+  - quiz-maker
+  - flashcard-deck
+  - memory-ops
+  - heartbeat-ops
+  - conversation-recap
+
+channels:
+  - type: slack
+    enabled: true
+    env_prefix: SLACK_ENGLISH_
+    allow_from: ["*"]
+    group_policy: mention
+    reply_in_thread: true
+
+proactive:
+  heartbeat:
+    enabled: false
+    interval_s: 1800
+    file: HEARTBEAT.md
+  cron:
+    enabled: false
+
+viewer:
+  renderer_base: https://product-teammate.github.io/gist-render/viewer/
+  gist_visibility: secret
+
+observability:
+  log_level: info

@@ -50,6 +50,32 @@ triggers:
 > Agent posts the viewer URL and schedules a review reminder via
 > `cron-ops` for the next day.
 
+## Scripts
+
+Prefer the shared publisher over raw `gh gist create` (requires the
+`Bash` tool):
+
+```bash
+echo '<deck-json-here>' | python -m coach_cli.publish_gist \
+    --filename deck.json \
+    --desc "Flashcards: <topic>" \
+    --type flashcards \
+    --renderer-base https://product-teammate.github.io/gist-render/viewer/
+```
+
+The script prints a JSON object with `gist_id`, `raw_url`, and a
+constructed `viewer_url`. Post the `viewer_url` to the learner.
+
+Python API (when a direct-run tool is available):
+
+```python
+from coach_cli.publish_gist import publish_gist_json, viewer_url
+gist_id, raw_url = publish_gist_json(
+    deck, filename="deck.json", description=f"Flashcards: {topic}", secret=True
+)
+url = viewer_url(raw_url, type="flashcards", renderer_base=renderer_base)
+```
+
 ## Constraints
 
 - Avoid duplicating content from existing decks on the same topic —

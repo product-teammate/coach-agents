@@ -1,0 +1,7 @@
+# Files the brain should ignore when reading the agent directory.
+.runtime/
+CLAUDE.md
+*.log
+*.sqlite
+*.db
+.env

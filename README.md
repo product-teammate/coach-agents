@@ -6,8 +6,9 @@ swappable layers:
 
 1. **Brain** — the LLM runtime that plans and acts. Phase 1 uses the
    [Claude Code CLI](https://docs.claude.com/claude-code) as a subprocess.
-2. **Channel** — where the learner actually talks to the agent. Phase 1 ships
-   a Telegram long-polling adapter; Slack/Discord/CLI are stubbed.
+2. **Channel** — where the learner actually talks to the agent. Phase 1
+   ships Telegram (long-polling) and Slack (Socket Mode) adapters, plus
+   a stdin/stdout CLI channel for local dev. Discord is Phase 2.
 3. **Skills** — shared, file-based capabilities discovered by the brain. All
    agents draw from the same `skills/` library (RAG research, quiz making,
    flashcards, memory ops, heartbeat reminders, feedback loop, ...).
@@ -52,31 +53,47 @@ fresh `CLAUDE.md` per turn so the brain sees exactly the right context.
 
 ## Quick start
 
+Two live coaches ship in `agents/`:
+
+- **`english-coach`** — Ava, English A2 -> C1 (Slack)
+- **`playwright-coach`** — Rook, first spec -> 500-test CI pipeline (Slack)
+
 ```bash
 git clone https://github.com/product-teammate/coach-agents.git
 cd coach-agents
-python -m venv .venv && source .venv/bin/activate
+python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
 # Sanity check your environment.
 coach doctor
 
-# Create your first agent.
-coach new english-coach
+# Copy tokens. For the two pre-built coaches, set:
+#   SLACK_ENGLISH_BOT_TOKEN=xoxb-...
+#   SLACK_ENGLISH_APP_TOKEN=xapp-...
+#   SLACK_PLAYWRIGHT_BOT_TOKEN=xoxb-...
+#   SLACK_PLAYWRIGHT_APP_TOKEN=xapp-...
+cp .env.example .env
+$EDITOR .env
 
-# Edit agents/english-coach/SOUL.md, USER.md, and agent.yaml.
-# Export the Telegram token per your env_prefix, e.g.:
-export TELEGRAM_ENGLISH_BOT_TOKEN=...
-
-# Validate and start it.
+# Validate and run.
 coach validate english-coach
-coach start english-coach
+coach validate playwright-coach
+coach start --all          # or: coach start english-coach
 ```
 
-You can run in stub mode without the `claude` CLI installed:
+Scaffold your own coach from scratch:
 
 ```bash
-COACH_BRAIN_STUB=1 coach start english-coach
+coach new my-coach                 # prompts for channel + description
+# edit agents/my-coach/SOUL.md
+coach validate my-coach
+coach start my-coach               # filters to one agent via COACH_ONLY_AGENT
+```
+
+Iterate without the `claude` CLI logged in:
+
+```bash
+COACH_BRAIN_STUB=1 coach start --all
 ```
 
 ## Docs
@@ -92,11 +109,12 @@ COACH_BRAIN_STUB=1 coach start english-coach
 
 ## Roadmap
 
-- **Phase 1** (current): Claude Code brain + Telegram channel + 9 skill
-  manifests; `kb-research` has working scripts.
-- **Phase 2**: Slack/Discord adapters; port DeepTutor Slack integration.
-- **Phase 3**: Additional brains (codex, antigravity).
-- **Phase 4**: Local RAG via Ollama + embeddings, replacing file-read mode.
+- **Phase 1** (current): Claude Code brain + Telegram + Slack channels,
+  heartbeat scheduler, gist-based quiz/flashcard publishing, two live
+  coaches (Ava, Rook).
+- **Phase 2**: Discord adapter, codex + antigravity brains, local RAG
+  via Ollama, persistent scheduler JobStore. See
+  [docs/phase-2-roadmap.md](docs/phase-2-roadmap.md).
 
 ## License
 

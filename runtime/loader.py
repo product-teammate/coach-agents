@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -60,12 +61,28 @@ def load_agent(agent_dir: Path) -> LoadedAgent:
 
 
 def discover_agents(agents_root: Path | None = None) -> list[LoadedAgent]:
-    """Load every agents/<id>/ directory that contains agent.yaml."""
-    root = (agents_root or (PROJECT_ROOT / "agents")).resolve()
+    """Load every agents/<id>/ directory that contains agent.yaml.
+
+    When the environment variable ``COACH_ONLY_AGENT`` is set, only that
+    single agent id is loaded. This is how ``coach start <id>`` filters
+    the runtime to a single agent without changing the runtime entry point.
+    """
+    default_root = PROJECT_ROOT / "agents"
+    env_root = os.environ.get("COACH_AGENTS_ROOT")
+    if agents_root is not None:
+        root = agents_root.resolve()
+    elif env_root:
+        root = Path(env_root).resolve()
+    else:
+        root = default_root.resolve()
     out: list[LoadedAgent] = []
     if not root.exists():
         return out
+    only = os.environ.get("COACH_ONLY_AGENT") or None
     for child in sorted(root.iterdir()):
-        if child.is_dir() and (child / "agent.yaml").exists():
-            out.append(load_agent(child))
+        if not child.is_dir() or not (child / "agent.yaml").exists():
+            continue
+        if only is not None and child.name != only:
+            continue
+        out.append(load_agent(child))
     return out

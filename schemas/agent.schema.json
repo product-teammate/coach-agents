@@ -71,7 +71,11 @@
           "enabled": { "type": "boolean" },
           "env_prefix": { "type": "string" },
           "allow_from": { "type": "array", "items": { "type": ["string", "integer"] } },
-          "mode": { "enum": ["polling", "webhook"] }
+          "mode": { "enum": ["polling", "webhook", "socket"] },
+          "group_policy": { "enum": ["open", "mention", "allowlist"] },
+          "group_allow_from": { "type": "array", "items": { "type": "string" } },
+          "reply_in_thread": { "type": "boolean" },
+          "react_emoji": { "type": "string" }
         }
       }
     },
