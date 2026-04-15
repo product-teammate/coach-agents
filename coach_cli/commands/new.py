@@ -75,8 +75,64 @@ def new(
     config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
 
     console.print(f"[green]created[/] {target}")
+
+    # Offer to pre-load the knowledge base immediately. If declined, leave
+    # an ONBOARDING.md breadcrumb so the first heartbeat tick picks it up.
+    preload = typer.confirm("Pre-load knowledge base now?", default=True)
+    if preload:
+        _run_preload_inline(agent_id)
+    else:
+        _write_onboarding_stub(target, agent_id)
+        console.print(
+            f"[yellow]deferred[/] wrote {target / 'ONBOARDING.md'} - run "
+            f"`coach learn {agent_id}` when SOUL.md is finalized, or it will "
+            "trigger automatically on first heartbeat."
+        )
+
     console.print("Next steps:")
     console.print(f"  1. Edit {target / 'SOUL.md'} with the coach persona.")
     console.print(f"  2. Fill in {target / 'USER.md'} with your learner profile.")
     console.print(f"  3. Export the channel env var(s) from .env.example.")
     console.print(f"  4. Run: coach validate {agent_id}")
+
+
+def _run_preload_inline(agent_id: str) -> None:
+    """Trigger an AUTO-mode ``coach learn`` inline; tolerate failure."""
+    try:
+        import asyncio
+
+        from coach_cli.learn_core import (
+            LearnRequest,
+            finalize_learn,
+            stream_learn,
+        )
+
+        async def _stream() -> None:
+            req = LearnRequest(agent_id=agent_id, mode="auto")
+            async for chunk in stream_learn(req):
+                console.print(chunk, end="", highlight=False, soft_wrap=True)
+            console.print()
+
+        asyncio.run(_stream())
+        finalize_learn(agent_id)
+        console.print("[green]knowledge pre-load complete.[/]")
+    except Exception as exc:  # noqa: BLE001 - best-effort, never block bot creation
+        console.print(f"[yellow]warning:[/] pre-load failed: {exc}")
+        console.print(
+            f"  run `coach learn {agent_id}` manually once your SOUL.md is ready."
+        )
+
+
+def _write_onboarding_stub(target: Path, agent_id: str) -> None:
+    """Write an ONBOARDING.md so the heartbeat consumer can pick it up."""
+    body = (
+        "# Onboarding Tasks\n\n"
+        "*This file is consumed by the first heartbeat tick after bot starts. "
+        'Each completed task is moved to "Completed" section. When all tasks '
+        "are done, this file can be deleted.*\n\n"
+        "## Pending\n\n"
+        f"- [ ] Pre-load knowledge base via AUTO plan. See `coach learn {agent_id}` "
+        "or wait for heartbeat tick.\n\n"
+        "## Completed\n"
+    )
+    (target / "ONBOARDING.md").write_text(body, encoding="utf-8")

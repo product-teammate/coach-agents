@@ -1,64 +1,102 @@
 # kb-research — detailed playbook
 
 You are extending the agent's knowledge base. Your job is to go from a topic
-phrase to clean, attributed, summarized markdown stored in `knowledge/`.
+phrase (or the coach's persona itself) to clean, attributed, summarized
+markdown stored in `knowledge/`.
 
-## Step 1 — Understand the ask
+## Mode A — AUTO (triggered by ``coach learn <id>``)
 
-Read the latest user message and `USER.md` to gauge the learner's level.
-Decide:
+**Step A1 — Read the coach.**
+Open `SOUL.md` and `USER.md`. Identify:
 
-- **topic slug**: kebab-case, under 50 chars.
-- **depth**: `shallow` (1-2 sources), `standard` (3-5), `deep` (up to 10).
-  Default `standard` unless the learner signals otherwise.
+- The coach's teaching domain (English? Playwright? Math?).
+- The learning arc stages (CEFR levels, test pipeline maturity, etc.).
+- The learner's current level, goals, and growth edges (if USER.md is filled
+  in — otherwise assume the earliest stage of the arc).
 
-## Step 2 — Build a source plan
+**Step A2 — Enumerate foundational topics.**
+Produce 5-10 topic candidates that the coach will repeatedly need. Bias
+toward the lower stages of the arc (the learner is usually closer to the
+start than the end). Examples:
 
-Load `skills/kb-research/sources.yaml`. Pick sources in this priority order:
+- English A2→C1 coach: CEFR level descriptors, past simple vs. past
+  continuous, conditionals overview, register + formality, collocations
+  basics, phrasal-verb clusters for daily life.
+- Playwright coach: selector strategy, locator vs. element handle, auto-wait
+  mechanics, test parallelism, CI integration recipes, trace viewer.
 
-1. Official primary (MDN, vendor docs, spec).
-2. Reputable secondary (arxiv, wikipedia, canonical tutorials).
-3. Community explainers — only if depth > shallow.
+**Step A3 — Pick a source per topic.** Load
+`skills/kb-research/sources.yaml`. Priority:
 
-Skip anything not on the allowlist. If the topic has no matching source,
-tell the learner and stop.
+1. Official primary (MDN, Playwright docs, W3C, Cambridge, British Council).
+2. Reputable secondary (Wikipedia context, arXiv).
+3. Community explainers — only if primary doesn't cover the angle.
 
-## Step 3 — Fetch and clean
+Skip anything not on the allowlist.
 
-For each chosen URL, call:
-
-```
-python skills/kb-research/scripts/fetch_and_clean.py <url> <output_path>
-```
-
-Where `<output_path>` is `knowledge/<topic-slug>-<source-slug>.md`. The
-script fetches the URL with httpx, converts HTML to markdown via
-markdownify, strips noise, and prepends a YAML header with `source`,
-`fetched_at`, and `topic`.
-
-## Step 4 — Cross-source summary
-
-Call:
+**Step A4 — Fetch + clean.** For each URL use `WebFetch` to retrieve, then
+write `knowledge/<slug>.md` with frontmatter:
 
 ```
-python skills/kb-research/scripts/summarize.py <path1> <path2> ...
+---
+topic: <topic>
+source: <url>
+fetched_at: <ISO 8601>
+tags: [<tag1>, <tag2>]
+---
 ```
 
-It stitches key sections, de-duplicates, and writes
-`knowledge/_summaries/<topic-slug>.md` (creating the dir if needed).
+Slugs are lowercase kebab-case, deterministic (no timestamps). Target
+500-3000 words per file. If one source would overflow, split into focused
+sub-files.
 
-## Step 5 — Update MEMORY.md
+**Step A5 — Regenerate INDEX.** Write (or overwrite) `knowledge/INDEX.md`
+with one bullet per file: ``- `<slug>.md` — <one-sentence summary>``. Sorted
+alphabetically by filename. The `coach learn` CLI will also run this
+automatically after you finish.
+
+## Mode B — TARGETED (``coach learn <id> "<topic>"``)
+
+Same as AUTO steps A3-A5 but scoped to the single topic. If the topic is
+broad, split into 2-3 focused sub-files rather than one mega-file.
+
+## Mode C — BATCH (``coach learn <id> --from urls.txt``)
+
+Iterate the URL list in order. For each URL:
+
+1. Check the allowlist. Skip if not allowed **unless** the batch file
+   contains a line like `# override` immediately above this URL.
+2. Fetch via WebFetch, clean, save to `knowledge/<slug>.md` with
+   frontmatter (source = the URL).
+3. Update `knowledge/INDEX.md`.
+
+## Mode D — DRY-RUN (``coach learn <id> --dry-run``)
+
+Execute Mode A steps A1-A3 only. Print the plan (topics + URLs) and stop.
+Do NOT call WebFetch and do NOT write any files.
+
+## Step — Update MEMORY.md
 
 Append a note to `MEMORY.md` under `## Research log`:
 
 ```
-- 2026-04-14 — researched "CSS container queries" (standard) → 3 sources.
+- 2026-04-14 — coach learn run (auto, N files).
 ```
 
-## Step 6 — Reply to the learner
+## Step — Reply
 
 Keep it short:
 
-- One-paragraph TL;DR from the summary.
+- One-paragraph TL;DR of what was added (or planned, for dry-run).
 - List the files added with relative paths.
 - Suggest the next concrete action (quiz, flashcards, practice task).
+
+## Hard rules
+
+- Only fetch from allowlisted domains unless a `# override` comment
+  authorises it in a batch file.
+- Max 10 files per run.
+- If a single fetch fails, log the error and continue — do not abort the
+  whole batch.
+- De-duplicate — don't fetch two pages on the same concept.
+- Never save a file > 200 KB; split instead.

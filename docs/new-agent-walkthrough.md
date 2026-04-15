@@ -10,7 +10,25 @@ coach new my-coach
 ```
 
 The CLI prompts for a display name, description, and channel. It copies
-`template/` into `agents/my-coach/` and patches `agent.yaml`.
+`template/` into `agents/my-coach/` and patches `agent.yaml`. After the
+channel prompt it also asks **"Pre-load knowledge base now?"**:
+
+- **Yes** — runs an AUTO `coach learn` inline so the new coach starts
+  with authoritative material in `knowledge/`. Failure is non-fatal.
+- **No** — writes `agents/my-coach/ONBOARDING.md` with a pending task.
+  The next heartbeat tick will run the pre-load automatically.
+
+You can always re-run the ingestion manually later:
+
+```bash
+coach learn my-coach                    # AUTO plan from SOUL + USER
+coach learn my-coach "conditionals"     # one topic
+coach learn my-coach --from urls.txt    # batch list
+coach learn my-coach --dry-run          # print the plan, don't fetch
+```
+
+See [knowledge-management.md](knowledge-management.md) for the full
+ingestion story.
 
 ## 2. Write the persona
 

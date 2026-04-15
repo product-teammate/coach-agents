@@ -84,10 +84,21 @@ coach start --all          # or: coach start english-coach
 Scaffold your own coach from scratch:
 
 ```bash
-coach new my-coach                 # prompts for channel + description
+coach new my-coach                 # prompts for channel + optional knowledge pre-load
 # edit agents/my-coach/SOUL.md
+coach learn my-coach               # AUTO: plan topics from SOUL and ingest authoritative sources
 coach validate my-coach
 coach start my-coach               # filters to one agent via COACH_ONLY_AGENT
+```
+
+Knowledge ingestion has four modes (see
+[docs/knowledge-management.md](docs/knowledge-management.md)):
+
+```bash
+coach learn my-coach                        # AUTO - plan + fetch
+coach learn my-coach "conditionals"         # TARGETED - one topic
+coach learn my-coach --from urls.txt        # BATCH - explicit URL list
+coach learn my-coach --dry-run              # AUTO plan only, no writes
 ```
 
 Iterate without the `claude` CLI logged in:
@@ -100,6 +111,7 @@ COACH_BRAIN_STUB=1 coach start --all
 
 - [docs/architecture.md](docs/architecture.md) — module map and data flow
 - [docs/new-agent-walkthrough.md](docs/new-agent-walkthrough.md) — step-by-step
+- [docs/knowledge-management.md](docs/knowledge-management.md) — `coach learn`, sources, onboarding flow
 - [docs/brain-interface.md](docs/brain-interface.md) — Brain Protocol contract
 - [docs/channel-interface.md](docs/channel-interface.md) — Channel Protocol
 - [docs/skill-authoring.md](docs/skill-authoring.md) — how to write a SKILL.md

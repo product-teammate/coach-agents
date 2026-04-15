@@ -21,6 +21,7 @@ from channels.slack.adapter import SlackChannel
 from channels.telegram.adapter import TelegramChannel
 from runtime.env import load_dotenv
 from runtime.loader import LoadedAgent, discover_agents
+from runtime.onboarding import run_onboarding_tick
 from runtime.permissions import merge_tools
 from runtime.queue import PerUserQueueManager
 from runtime.router import Router
@@ -93,6 +94,20 @@ def _make_heartbeat_job(
     brain_cfg = agent.config.get("brain", {})
 
     async def _tick() -> None:
+        # ORDER: ONBOARDING.md first, then the recurring HEARTBEAT.md work.
+        # Onboarding clears out one-shot setup tasks (like knowledge pre-load)
+        # before the recurring routine runs.
+        try:
+            executed = await run_onboarding_tick(agent, brain)
+            if executed:
+                logger.info(
+                    "onboarding[{}] executed {} task(s)",
+                    agent.agent_id,
+                    executed,
+                )
+        except Exception:  # noqa: BLE001
+            logger.exception("onboarding[{}] tick failed", agent.agent_id)
+
         content = _heartbeat_content(agent)
         if content is None:
             logger.info("heartbeat[{}] tick: no tasks", agent.agent_id)

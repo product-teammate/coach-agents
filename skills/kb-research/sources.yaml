@@ -1,30 +1,66 @@
 # Allowlisted research sources for kb-research.
-# Only domains matching one of these entries may be fetched.
+#
+# Purpose: the kb-research skill + ``coach learn`` will only fetch from
+# domains listed here. This is a safety rail - it keeps knowledge/
+# grounded in authoritative material instead of random SEO pages.
+# When a new coach needs a new domain, add it here (never widen at
+# runtime). ``trust: primary`` = canonical/official; ``secondary`` =
+# reputable reference; ``community`` = explainers, use sparingly.
 
 allowlist:
+  # Web platform + docs
   - domain: developer.mozilla.org
     trust: primary
-    note: MDN — canonical web platform docs.
+    note: MDN - canonical web platform docs.
   - domain: web.dev
     trust: primary
     note: Google/Chrome team explainers.
+  - domain: www.w3.org
+    trust: primary
+    note: W3C specifications.
   - domain: docs.python.org
     trust: primary
   - domain: playwright.dev
     trust: primary
+
+  # General reference
   - domain: en.wikipedia.org
     trust: secondary
     note: Use for context, not as sole source.
   - domain: arxiv.org
     trust: secondary
+
+  # English language learning
+  - domain: dictionary.cambridge.org
+    trust: primary
+    note: Cambridge English dictionary.
+  - domain: www.cambridge.org
+    trust: primary
+  - domain: www.bbc.co.uk
+    trust: primary
+    note: BBC Learning English.
+  - domain: learnenglish.britishcouncil.org
+    trust: primary
+    note: British Council English learning portal.
+  - domain: www.britishcouncil.org
+    trust: primary
+
+  # Community explainers (use only when primary lacks coverage)
   - domain: css-tricks.com
     trust: community
   - domain: smashingmagazine.com
     trust: community
+
+  # Open courseware
   - domain: www.khanacademy.org
     trust: primary
   - domain: ocw.mit.edu
     trust: primary
+
+  # Official project READMEs only (not arbitrary repo contents)
+  - domain: github.com
+    trust: primary
+    note: Restrict to README.md / docs/ paths of authoritative repos.
 
 depth_limits:
   shallow: 2
