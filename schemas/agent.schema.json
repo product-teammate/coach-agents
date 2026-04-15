@@ -26,7 +26,8 @@
         "model": { "type": "string" },
         "permission_mode": { "enum": ["default", "acceptEdits", "plan", "bypassPermissions"] },
         "allowed_tools": { "type": "array", "items": { "type": "string" } },
-        "timeout_s": { "type": "integer", "minimum": 1 }
+        "timeout_s": { "type": "integer", "minimum": 1 },
+        "effort": { "enum": ["low", "medium", "high", "max"] }
       }
     },
     "persona": {
